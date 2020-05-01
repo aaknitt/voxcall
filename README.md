@@ -21,7 +21,7 @@ A sound-activated audio recorder with support for uploading audio to [Broadcasti
 
 ## Raspberry Pi executable binary (compiled for Raspbian Buster)
 [TGZ Download](https://radioetcetera.site/radioetcetera/files/voxcall.tgz)
-- Use a cheap USB sound card as the audio input - the Pi does come with an audio input
+- Use a cheap USB sound card as the audio input - the Pi does not come with an audio input
 - Download using link above or via `curl -O https://radioetcetera.site/radioetcetera/files/voxcall.tgz`
 - `tar zxf voxcall.tgz` to uncompress
 - Install pulseaudio:
