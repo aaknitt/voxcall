@@ -7,6 +7,9 @@ A sound-activated audio recorder with support for uploading audio to [Broadcasti
 - Connect a single-channel radio receiver to the sound card input on the computer.  If audio will be uploaded to Broadcastify Calls, the receiver should not be scanning multiple frequencies.
 - Set the Audio Squelch using the slider.  Audio above the level of the slider will trigger recording.  The current audio level is shown adjacent to the slider.  Set the level of the slider while testing with the radio squelched and unsquelched.  
 - To upload recorded audio files to Broadcastify Calls, enter information received from Broadcastify support
+  - API key goes in the API key field
+  - SID goes in the System ID field
+  - Slot goes in the Slod ID filed (default to 1 if no Slot ID is provided)
 - When audio is detected above the Audio Squelch level, audio will be recorded until two seconds of silence is detected.  Once the recording ends, an MP3 file will be created.  
   - If valid Broadcastify Calls credentials are entered, the MP3 file will be uploaded to that system.  
   - If the "Save Audio Files" option is selected, the recordings will be saved to the /audiosave subdirectory.   Otherwise, the MP3 will be deleted.  The filename will be the UNIX timestamp of when the recording was started. 
