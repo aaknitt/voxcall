@@ -78,6 +78,7 @@ elif __file__:
 	
 config = ConfigParser()
 config.read('config.cfg')
+
 try:
 	audio_dev_index = config.getint('Section1','audio_dev_index')
 except:
@@ -494,6 +495,8 @@ def saveconfigdata():
 	if root != '':
 		config = ConfigParser()
 		config.read('config.cfg')
+		if 'Section1' not in config.sections():
+			config.add_section('Section1')
 		cfgfile = open('config.cfg','w')
 		config.set('Section1','audio_dev_index',str(input_device_indices[input_device.get()]))
 		config.set('Section1','record_threshold',str(record_threshold.get()))
