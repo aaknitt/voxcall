@@ -13,7 +13,6 @@ from tkinter import ttk
 from configparser import ConfigParser
 import _thread
 import urllib3
-import base64
 from shutil import copyfile
 import logging
 
@@ -79,6 +78,7 @@ elif __file__:
 	
 config = ConfigParser()
 config.read('config.cfg')
+
 try:
 	audio_dev_index = config.getint('Section1','audio_dev_index')
 except:
@@ -119,7 +119,22 @@ try:
 	vox_silence_time = config.getfloat('Section','vox_silence_time')
 except:
 	vox_silence_time = 2
-
+try:
+	RDIO_APIkey_config = config.get('Section1','RDIO_APIkey')
+except:
+	RDIO_APIkey_config = ''
+try:
+	RDIO_APIurl_config = config.get('Section1','RDIO_APIurl')
+except:
+	RDIO_APIurl_config = ''
+try:
+	RDIO_system_config = config.get('Section1','RDIO_system')
+except:
+	RDIO_system_config = ''
+try:
+	RDIO_tg_config = config.get('Section1','RDIO_tg')
+except:
+	RDIO_tg_config = ''
 
 try:
 	root = Tk()
@@ -174,6 +189,14 @@ if root != '':
 	BCFY_SlotId.set(BCFY_SlotId_config)
 	RadioFreq = StringVar()
 	RadioFreq.set(RadioFreq_config)
+	RDIO_APIkey = StringVar()
+	RDIO_APIkey.set(RDIO_APIkey_config)
+	RDIO_system = StringVar()
+	RDIO_system.set(RDIO_system_config)
+	RDIO_tg = StringVar()
+	RDIO_tg.set(RDIO_tg_config)
+	RDIO_APIurl = StringVar()
+	RDIO_APIurl.set(RDIO_APIurl_config)
 	saveaudio = IntVar()
 	saveaudio.set(saveaudio_config)
 	in_channel = StringVar()
@@ -235,26 +258,59 @@ def record(seconds,channel='mono'):
 	return data
 
 def heartbeat():
-	if BCFY_APIkey != '':
+	if (root != '' and BCFY_APIkey.get() != '') or (root == '' and BCFY_APIkey_config != ''):
 		if version.endswith('DEV'):
 			url = 'https://api.broadcastify.com/call-upload-dev'
 		else:
 			url = 'https://api.broadcastify.com/call-upload'
 		http = urllib3.PoolManager()
+		if root != '':
+			apiKey = BCFY_APIkey.get()
+			systemId = BCFY_SystemId.get()
+		else:
+			apiKey = BCFY_APIkey_config
+			systemId = BCFY_SystemId_config
 		r = http.request(
 			'POST',
 			url,
-			fields={'apiKey': BCFY_APIkey.get(),'systemId': BCFY_SystemId.get(),'test': '1'})
+			fields={'apiKey': apiKey,'systemId': systemId,'test': '1'})
 		if r.status != 200:
 			logger.debug("heartbeat failed with status " + str(r.status))
 			logger.debug(r.data)
 		else:
 			logger.debug("heartbeat OK at " + str(time.time()))
 
-
+def upload_rdio(fname):
+	if root != '':
+		url = RDIO_APIurl.get()
+		key = RDIO_APIkey.get()
+		system = RDIO_system.get()
+		tg = RDIO_tg.get()
+	else:
+		url = RDIO_APIurl_config
+		key = RDIO_APIkey_config
+		system = RDIO_system_config
+		tg = RDIO_tg_config
+	if url != '' and key != '' and system != '' and tg != '':
+		http = urllib3.PoolManager()
+		f = open(fname,'rb')
+		audio_data = f.read()
+		f.close()
+		r = http.request(
+			'POST',
+			url,
+			fields={'key': key,'dateTime': datetime.datetime.utcnow().isoformat() + 'Z','system':str(system),'talkgroup':str(tg),'audio': (fname, audio_data, 'application/octet-stream')},
+			timeout=30)
+		if r.status != 200:
+			logger.debug("initial connect failed with status " + str(r.status))
+			logger.debug(r.data)
+		else:
+			logger.debug("upload to rdio-scanner OK")
+	else:
+		logger.info("No rdio-scanner config detected, skipping upload to rdio-scanner API")
 
 def upload(fname,duration):
-	if BCFY_APIkey != '':
+	if (root != '' and BCFY_APIkey.get() != '') or (root == '' and BCFY_APIkey_config != ''):
 		if version.endswith('DEV'):
 			url = 'https://api.broadcastify.com/call-upload-dev'
 		else:
@@ -279,8 +335,6 @@ def upload(fname,duration):
 			if resp[0] == '0':
 				upload_url = resp[1]
 				file_data = open(fname,"rb").read()
-				send_data = base64.b64encode(file_data).decode("utf-8")
-				#logger.debug(resp[1])
 				r1 = http.request(
 				'PUT',
 				upload_url,
@@ -288,17 +342,20 @@ def upload(fname,duration):
 					'filefield': (fname, file_data, 'audio/mpeg'),
 				})
 				if r1.status == 200:
-					logger.debug("upload OK")
+					logger.debug("upload to BCFY OK")
 				else:
 					logger.debug("upload failed with status " + str(r1.status))
 					logger.debug(r1.data)
 			else:
 				logger.debug("error response from server: " + r.data.decode('utf-8'))
+	else:
+		logger.info("No BCFY config found, not attempting to upload there")
 	if root != '':
 		saveit = saveaudio.get()
 	else:
 		saveit = saveaudio_config
 	if saveit == 0:
+		time.sleep(10)  #wait to make sure the other thread uploading to rdio-scanner has time to grab the file before deleting it
 		os.remove(fname)
 	else:
 		try:
@@ -307,6 +364,7 @@ def upload(fname,duration):
 			if e.errno != errno.EEXIST:
 				raise
 		copyfile(fname,'./audiosave/'+fname)
+		time.sleep(10)  #wait to make sure the other thread uploading to rdio-scanner has time to grab the file before deleting it
 		os.remove(fname)
 
 def start():
@@ -425,6 +483,7 @@ def start():
 				#traceback.print_exception(exc_type, exc_value, exc_traceback,limit=2,file=sys.stdout)
 				logging.exception('Got exception on main handler')
 			_thread.start_new_thread(upload,(fname.replace('.wav','.mp3'),duration))
+			_thread.start_new_thread(upload_rdio,(fname.replace('.wav','.mp3'),))
 			last_API_attempt = time.time()
 			logger.debug("duration: " + str(duration) + " sec")
 			logger.debug("waiting for audio " + time.strftime('%H:%M:%S on %m/%d/%y'))
@@ -433,22 +492,29 @@ def start():
 				StatLabel.config(fg='blue')
 
 def saveconfigdata():
-	config = ConfigParser()
-	config.read('config.cfg')
-	cfgfile = open('config.cfg','w')
-	config.set('Section1','audio_dev_index',str(input_device_indices[input_device.get()]))
-	config.set('Section1','record_threshold',str(record_threshold.get()))
-	config.set('Section1','vox_silence_time',str(vox_silence_time))
-	config.set('Section1','in_channel',in_channel.get())
-	config.set('Section1','BCFY_SystemId',BCFY_SystemId.get())
-	config.set('Section1','RadioFreq',RadioFreq.get())
-	config.set('Section1','BCFY_APIkey',BCFY_APIkey.get())
-	config.set('Section1','BCFY_SlotId',BCFY_SlotId.get())
-	config.set('Section1','saveaudio',str(saveaudio.get()))
-	config.set('Section1','vox_silence_time',str(vox_silence_time))
-	config.write(cfgfile)
-	cfgfile.close()
-	root.destroy()
+	if root != '':
+		config = ConfigParser()
+		config.read('config.cfg')
+		if 'Section1' not in config.sections():
+			config.add_section('Section1')
+		cfgfile = open('config.cfg','w')
+		config.set('Section1','audio_dev_index',str(input_device_indices[input_device.get()]))
+		config.set('Section1','record_threshold',str(record_threshold.get()))
+		config.set('Section1','vox_silence_time',str(vox_silence_time))
+		config.set('Section1','in_channel',in_channel.get())
+		config.set('Section1','BCFY_SystemId',BCFY_SystemId.get())
+		config.set('Section1','RadioFreq',RadioFreq.get())
+		config.set('Section1','BCFY_APIkey',BCFY_APIkey.get())
+		config.set('Section1','BCFY_SlotId',BCFY_SlotId.get())
+		config.set('Section1','saveaudio',str(saveaudio.get()))
+		config.set('Section1','vox_silence_time',str(vox_silence_time))
+		config.set('Section1','RDIO_APIkey',RDIO_APIkey.get())
+		config.set('Section1','RDIO_APIurl',RDIO_APIurl.get())
+		config.set('Section1','RDIO_system',RDIO_system.get())
+		config.set('Section1','RDIO_tg',RDIO_tg.get())
+		config.write(cfgfile)
+		cfgfile.close()
+		root.destroy()
 
 if root != '':
 	f = Frame(bd=10)
@@ -464,31 +530,46 @@ if root != '':
 	StatLabel = Label(f,textvar = statvar,font=("Helvetica", 12))
 	StatLabel.grid(row = 1, column = 1,columnspan = 4,sticky = W)
 	StatLabel.config(fg='blue')
-	Label(f, text="Audio Input Device:").grid(row = 2, column = 0,sticky = E)
-	OptionMenu(f,input_device,*input_devices,command = change_audio_input).grid(row = 2,column = 1,columnspan = 4,sticky = E+W)
-	Label(f,text='Broadcastify API Key:').grid(row=3,column=0,sticky = E)
-	BCFY_APIkey_Entry = Entry(f,width=40,textvariable = BCFY_APIkey)
-	BCFY_APIkey_Entry.grid(row = 3, column = 1,columnspan = 4,sticky=W)
-	Label(f,text = 'Audio Input Channel').grid(row = 4,column = 0,sticky=E)
+	Label(f, text="Audio Input Device:").grid(row = 3, column = 0,sticky = E)
+	OptionMenu(f,input_device,*input_devices,command = change_audio_input).grid(row = 3,column = 1,columnspan = 4,sticky = E+W)
+	Label(f,text = 'Audio Input Channel').grid(row = 5,column = 0,sticky=E)
 	audiochannellist = OptionMenu(f,in_channel,"mono","left","right")
 	audiochannellist.config(width=20)
-	audiochannellist.grid(row = 4,column = 1,sticky=W)
-	squelchbar = Scale(f,from_ = 100, to = 0,length = 150,sliderlength = 8,showvalue = 0,variable = record_threshold,orient = 'vertical').grid(row = 4,rowspan=5,column = 2,columnspan = 1)
-	ttk.Progressbar(f,orient ='vertical',variable = barvar,length = 150).grid(row = 4,rowspan = 5,column = 3,columnspan = 1)
-	Label(f,text='Broadcastify System ID:').grid(row=5,column=0,sticky = E)
+	audiochannellist.grid(row = 5,column = 1,sticky=W)
+	Label(f,text='Broadcastify API Key:').grid(row=7,column=0,sticky = E)
+	BCFY_APIkey_Entry = Entry(f,width=40,textvariable = BCFY_APIkey)
+	BCFY_APIkey_Entry.grid(row = 7, column = 1,columnspan = 4,sticky=W)
+	Label(f,text='Broadcastify System ID:').grid(row=9,column=0,sticky = E)
 	BCFY_SystemId_Entry = Entry(f,width=20,validate='key',validatecommand=vcmd,textvariable = BCFY_SystemId)
-	BCFY_SystemId_Entry.grid(row = 5, column = 1,sticky=W)
-	Label(f,text='Broadcastify Slot ID:').grid(row=6,column=0,sticky = E)
+	BCFY_SystemId_Entry.grid(row = 9, column = 1,sticky=W)
+	Label(f,text='Broadcastify Slot ID:').grid(row=11,column=0,sticky = E)
 	BCFY_SlotId_Entry = Entry(f,width=20,validate='key',validatecommand=vcmd,textvariable = BCFY_SlotId)
-	BCFY_SlotId_Entry.grid(row = 6, column = 1,sticky=W)
-	Label(f,text='Radio Frequency (MHz):').grid(row=7,column=0,sticky = E)
+	BCFY_SlotId_Entry.grid(row = 11, column = 1,sticky=W)
+	Label(f,text='Radio Frequency (MHz):').grid(row=19,column=0,sticky = E)
 	Freq_Entry = Entry(f,width=20,textvariable = RadioFreq)
-	Freq_Entry.grid(row = 7, column = 1,sticky=W)
-	Label(f,text='Save Audio Files:').grid(row=8,column=0,sticky=E)
-	Checkbutton(f,text = '',variable = saveaudio).grid(row = 8, column = 1,sticky=W)
-	Button(f, text = "Save & Exit",command = saveconfigdata,width=20).grid(row = 9,column = 1,columnspan = 1,sticky=W)
-	Label(f,text='Audio\n Squelch').grid(row=9,column=2)
-	Label(f,text='Audio\n Level').grid(row=9,column=3)
+	Freq_Entry.grid(row = 19, column = 1,sticky=W)
+
+	Label(f,text='rdio-scanner url:').grid(row=20,column=0,sticky = E)
+	RDIO_APIurl_Entry = Entry(f,width=40,textvariable = RDIO_APIurl)
+	RDIO_APIurl_Entry.grid(row = 20, column = 1,sticky=W)
+	Label(f,text='rdio-scanner API Key:').grid(row=21,column=0,sticky = E)
+	RDIO_APIkey_Entry = Entry(f,width=40,textvariable = RDIO_APIkey)
+	RDIO_APIkey_Entry.grid(row = 21, column = 1,columnspan = 4,sticky=W)
+	Label(f,text='rdio-scanner System ID:').grid(row=22,column=0,sticky = E)
+	RDIO_system_Entry = Entry(f,width=20,validate='key',validatecommand=vcmd,textvariable = RDIO_system)
+	RDIO_system_Entry.grid(row = 22, column = 1,sticky=W)
+	Label(f,text='rdio-scanner TG ID:').grid(row=23,column=0,sticky = E)
+	RDIO_tg_Entry = Entry(f,width=20,validate='key',validatecommand=vcmd,textvariable = RDIO_tg)
+	RDIO_tg_Entry.grid(row = 23, column = 1,sticky=W)
+	
+	Label(f,text='Save Audio Files:').grid(row=24,column=0,sticky=E)
+	Checkbutton(f,text = '',variable = saveaudio).grid(row = 24, column = 1,sticky=W)
+	Button(f, text = "Save & Exit",command = saveconfigdata,width=20).grid(row = 25,column = 1,columnspan = 1,sticky=W)
+	
+	squelchbar = Scale(f,from_ = 100, to = 0,length = 150,sliderlength = 8,showvalue = 0,variable = record_threshold,orient = 'vertical').grid(row = 17,rowspan=8,column = 7,columnspan = 1)
+	ttk.Progressbar(f,orient ='vertical',variable = barvar,length = 150).grid(row = 17,rowspan = 8,column = 8,columnspan = 1)
+	Label(f,text='Audio\n Squelch').grid(row=25,column=7)
+	Label(f,text='Audio\n Level').grid(row=25,column=8)
 	
 
 if root != '':
@@ -496,174 +577,3 @@ if root != '':
 	root.mainloop()
 else:
 	start()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
