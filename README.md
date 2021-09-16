@@ -38,7 +38,7 @@ A sound-activated audio recorder with support for uploading audio to [Broadcasti
 - If ffmpeg isn't already installed, install it:
   - `sudo apt-get install ffmpeg`
 - To run:
-  - `/home/pi/dist/voxcall`
+  - `/home/pi/voxcall/voxcall`
 
 
 
