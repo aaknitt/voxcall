@@ -42,7 +42,7 @@ logger.addHandler(fh)
 
 
 #record_threshold = 800
-vox_silence_time = 2
+vox_silence_time = 2            # Reset twice, below, based on settings in "Section1" and "Section" of config file
 mp3_bitrate = 32000
 start_minimized = 0
 rectime = .1
@@ -500,14 +500,14 @@ def saveconfigdata():
 		cfgfile = open('config.cfg','w')
 		config.set('Section1','audio_dev_index',str(input_device_indices[input_device.get()]))
 		config.set('Section1','record_threshold',str(record_threshold.get()))
-		config.set('Section1','vox_silence_time',str(vox_silence_time))
+		config.set('Section1','vox_silence_time',str(vox_silence_time)) # See [1], below
 		config.set('Section1','in_channel',in_channel.get())
 		config.set('Section1','BCFY_SystemId',BCFY_SystemId.get())
 		config.set('Section1','RadioFreq',RadioFreq.get())
 		config.set('Section1','BCFY_APIkey',BCFY_APIkey.get())
 		config.set('Section1','BCFY_SlotId',BCFY_SlotId.get())
 		config.set('Section1','saveaudio',str(saveaudio.get()))
-		config.set('Section1','vox_silence_time',str(vox_silence_time))
+		config.set('Section1','vox_silence_time',str(vox_silence_time)) # [1] Why is this set a 2nd time?
 		config.set('Section1','RDIO_APIkey',RDIO_APIkey.get())
 		config.set('Section1','RDIO_APIurl',RDIO_APIurl.get())
 		config.set('Section1','RDIO_system',RDIO_system.get())
