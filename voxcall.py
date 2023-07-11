@@ -42,7 +42,7 @@ logger.addHandler(fh)
 
 
 #record_threshold = 800
-vox_silence_time = 2
+vox_silence_time = 2            # Reset twice, below, based on settings in "Section1" and "Section" of config file
 mp3_bitrate = 32000
 start_minimized = 0
 rectime = .1
@@ -408,7 +408,7 @@ def start():
 			quiet_samples=0
 			total_samples = 0
 			alldata = bytearray()
-			logger.debug("Waiting for Silence " + time.strftime('%H:%M:%S on %m/%d/%y'))
+			logger.debug("Waiting for Silence " + time.strftime('%Y-%m-%d %H:%M:%S'))
 			if root != '':
 				statvar.set("Recording")
 				StatLabel.config(fg='green')
@@ -445,7 +445,7 @@ def start():
 					else:
 						quiet_samples = 0
 				total_samples = total_samples+1
-			logger.debug("Done recording " + time.strftime('%H:%M:%S on %m/%d/%y'))
+			logger.debug("Done recording " + time.strftime('%Y-%m-%d %H:%M:%S'))
 			if int(vox_silence_time*-(1/rectime)) > 0:
 				alldata = alldata[:int(vox_silence_time*-round(1/rectime))]
 			data = frombuffer(alldata, dtype=short)  #convert from string to list to separate channels
@@ -459,24 +459,25 @@ def start():
 			#convert back to binary to write to WAV later
 			data = chararray.tostring(array(data))
 			# write data to WAVE file
-			fname = str(round(time.time())) + "-" + str(BCFY_SlotId.get()) + ".wav"
-			WAVE_OUTPUT_FILENAME = fname
+			BCFYsuffix = '' if str(BCFY_SlotId.get()) == '' else "-" + str(BCFY_SlotId.get())
+			fname = time.strftime('%Y-%m-%dT%H:%M:%S') + BCFYsuffix + ".wav"
+			furl = 'file:' + fname
 
-			wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
+			wf = wave.open( fname, 'wb')
 			wf.setnchannels(1)
 			wf.setsampwidth(pyaudio.PyAudio().get_sample_size(FORMAT))
 			wf.setframerate(RATE)
 			wf.writeframes(data)
 			wf.close()
-			logger.debug("done writing WAV "  + time.strftime('%H:%M:%S on %m/%d/%y'))
+			logger.debug("done writing WAV "  + time.strftime('%Y-%m-%d %H:%M:%S'))
 			try:			
 				logger.debug(fname)
 				try:
 					flags = subprocess.CREATE_NO_WINDOW
 				except:
 					flags = 0
-				subprocess.call(["ffmpeg","-y","-i",fname,"-b:a",str(mp3_bitrate),"-ar","22050",fname.replace('.wav','.mp3')],creationflags=flags)
-				logger.debug("done converting to MP3 " + time.strftime('%H:%M:%S on %m/%d/%y'))				#use ffmpeg.exe 
+				subprocess.call(["ffmpeg","-y","-i",furl,"-b:a",str(mp3_bitrate),"-ar","22050",furl.replace('.wav','.mp3')],creationflags=flags)
+				logger.debug("done converting to MP3 " + time.strftime('%Y-%m-%d %H:%M:%S'))				#use ffmpeg.exe 
 				os.remove(fname)
 			except:
 				#exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -486,7 +487,7 @@ def start():
 			_thread.start_new_thread(upload_rdio,(fname.replace('.wav','.mp3'),))
 			last_API_attempt = time.time()
 			logger.debug("duration: " + str(duration) + " sec")
-			logger.debug("waiting for audio " + time.strftime('%H:%M:%S on %m/%d/%y'))
+			logger.debug("waiting for audio " + time.strftime('%Y-%m-%d %H:%M:%S'))
 			if root != '':
 				statvar.set("Waiting For Audio")
 				StatLabel.config(fg='blue')
@@ -500,14 +501,14 @@ def saveconfigdata():
 		cfgfile = open('config.cfg','w')
 		config.set('Section1','audio_dev_index',str(input_device_indices[input_device.get()]))
 		config.set('Section1','record_threshold',str(record_threshold.get()))
-		config.set('Section1','vox_silence_time',str(vox_silence_time))
+		config.set('Section1','vox_silence_time',str(vox_silence_time)) # See [1], below
 		config.set('Section1','in_channel',in_channel.get())
 		config.set('Section1','BCFY_SystemId',BCFY_SystemId.get())
 		config.set('Section1','RadioFreq',RadioFreq.get())
 		config.set('Section1','BCFY_APIkey',BCFY_APIkey.get())
 		config.set('Section1','BCFY_SlotId',BCFY_SlotId.get())
 		config.set('Section1','saveaudio',str(saveaudio.get()))
-		config.set('Section1','vox_silence_time',str(vox_silence_time))
+		config.set('Section1','vox_silence_time',str(vox_silence_time)) # [1] Why is this set a 2nd time?
 		config.set('Section1','RDIO_APIkey',RDIO_APIkey.get())
 		config.set('Section1','RDIO_APIurl',RDIO_APIurl.get())
 		config.set('Section1','RDIO_system',RDIO_system.get())
