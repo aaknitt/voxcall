@@ -24,12 +24,12 @@ A sound-activated audio recorder with support for uploading audio to [Broadcasti
 - Something not working?  Check the log.txt file for errors and create an Issue here if needed.
 
 ## Windows EXE
-[ZIP Download](https://radioetcetera.site/radioetcetera/files/voxcall.zip)
+[ZIP Download](https://github.com/aaknitt/voxcall/releases/download/1.1.0/voxcall.zip.-.Windows.EXE.zip)
 - Uncompress the downloaded ZIP file
 - Run the EXE
 
 ## Raspberry Pi executable binary (compiled for Raspbian Buster)
-[TGZ Download](https://radioetcetera.site/radioetcetera/files/voxcall.tgz)
+[TGZ Download](https://github.com/aaknitt/voxcall/releases/download/1.1.0/voxcall.tgz.-.Raspberry.Pi.32.bit.OS.tgz)
 - Use a cheap USB sound card as the audio input - the Pi does not come with an audio input
 - Download using link above or via `curl -O https://radioetcetera.site/radioetcetera/files/voxcall.tgz`
 - `tar zxf voxcall.tgz` to uncompress
