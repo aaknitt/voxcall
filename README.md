@@ -11,10 +11,15 @@ A sound-activated audio recorder with support for uploading audio to [Broadcasti
   - SID goes in the System ID field
   - Slot goes in the Slod ID filed (default to 1 if no Slot ID is provided)
 - To upload recorded audio files to rdio-scanner, enter information for the desired rdio-scanner instance
-  - URL of the rdio-scanner api (for example:  192.168.1.138:3000/api/call-upload
+  - URL of the rdio-scanner api (for example:  192.168.1.138:3000/api/call-upload )
   - rdio-scanner API key (create using the rdio-scanner admin interface)
   - System ID
   - Talkgroup ID
+- To upload recorded audio files to OpenMHz, enter information for the desired OpenMHz system
+  - OpenMHz API key
+  - ShortName of the System
+  - Talkgroup ID (for conventional systems, simply choose any integer number for this field)
+  - A Radio Frequency must be entered in the General Settings area
 - When audio is detected above the Audio Squelch level, audio will be recorded until two seconds of silence is detected.  Once the recording ends, an MP3 file will be created.  
   - If valid Broadcastify Calls credentials are entered, the MP3 file will be uploaded to that system.  
   - If valid rdio-scanner credentials are entered, the MP3 file will be uploaded to that system.
