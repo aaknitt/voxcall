@@ -18,6 +18,7 @@ A sound-activated audio recorder with support for uploading audio to [Broadcasti
 - When audio is detected above the Audio Squelch level, audio will be recorded until two seconds of silence is detected.  Once the recording ends, an MP3 file will be created.  
   - If valid Broadcastify Calls credentials are entered, the MP3 file will be uploaded to that system.  
   - If valid rdio-scanner credentials are entered, the MP3 file will be uploaded to that system.
+  - If valid OpenMHz credentials are entered, the MP3 file will be uploaded to that system.
   - If the "Save Audio Files" option is selected, the recordings will be saved to the /audiosave subdirectory.   Otherwise, the MP3 will be deleted.  The filename will be the UNIX timestamp of when the recording was started. 
 - There is a two-minute timeout timer.  If a recording exceeds two minutes (stuck squelch, noise, etc.) recording will stop, an error will be displayed, and no further activity will take place until the input audio goes below the Audio Squelch threshold, at which time normal operation will resume.
 - Multiple instances can be run at the same time to capture audio from multiple recievers.  Create a different directory for each instance.  Each directory must have a config.cfg file.  On Windows, each directory should also have a copy of ffmpeg.exe or ffmpeg.exe must be added to the system path.  
