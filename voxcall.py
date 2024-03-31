@@ -156,6 +156,10 @@ try:
 except:
     icad_APIkey_config = ''
 try:
+    icad_short_name_config = config.get('Section1', 'icad_short_name')
+except:
+    icad_short_name_config = ''
+try:
     icad_tgid_config = config.get('Section1', 'icad_tgid')
 except:
     icad_tgid_config = ''
@@ -231,6 +235,8 @@ if root != '':
     icad_URL.set(icad_URL_config)
     icad_APIKey = StringVar()
     icad_APIKey.set(icad_APIkey_config)
+    icad_short_name = StringVar()
+    icad_short_name.set(icad_short_name_config)
     icad_tgid = StringVar()
     icad_tgid.set(icad_tgid_config)
     saveaudio = IntVar()
@@ -396,20 +402,56 @@ def upload_openmhz(fname, start_time, duration):
 
     return True
 
+def create_icad_json(json_fname, start_time, duration):
+    if root != '':
+        short_name = icad_short_name.get()
+        tgid = icad_tgid.get()
+    else:
+        short_name = icad_short_name_config
+        tgid = icad_tgid_config
+
+    if not short_name or not tgid:
+        logger.error("iCAD Short Name, or TGID not found.")
+        return False
+
+    data = {
+        "short_name": short_name,
+        "talkgroup": tgid,
+        "start_time": int(start_time),
+        'stop_time': int(start_time + duration),
+        'call_length': int(duration),
+        "srcList": [],
+        "audio_url": None,
+        "transcript": None
+    }
+
+
+    with open(json_fname, 'w') as json_file:
+        json.dump(data, json_file)
+
+    return True
 
 def upload_icad_ttd(fname, start_time, duration):
+    file_path_without_extension, _ = os.path.splitext(fname)
+    json_fname = f'{file_path_without_extension}.json'
+    json_result = create_icad_json(json_fname, start_time, duration)
+
+    if not json_result:
+        logger.error("Could Not Create Json File for iCAD Tone Detect")
+        return False
+
     if root != '':
         api_key = icad_APIKey.get()
         url = icad_URL.get()
-        tgid = icad_tgid.get()
     else:
         api_key = icad_APIkey_config
         url = icad_URL_config
-        tgid = icad_tgid_config
 
-    if not api_key or not url or not tgid:
-        logger.error("iCAD API Key, URL, or TGID not found.")
+    if not api_key or not url:
+        logger.error("iCAD API Key, or URL not found.")
         return False
+
+    json_data = open(json_fname, 'rb').read()
 
     http = urllib3.PoolManager()
     f = open(fname, 'rb')
@@ -419,12 +461,8 @@ def upload_icad_ttd(fname, start_time, duration):
         'POST',
         url,
         fields={
-            'file': (os.path.basename(fname), audio_data, 'application/octet-stream'),
-            'start_time': str(start_time),
-            'stop_time': str(start_time + duration),
-            'call_length': str(duration),
-            'talkgroup': str(tgid),
-            'api_key': api_key
+            'audioFile': (os.path.basename(fname), audio_data, 'application/octet-stream'),
+            'jsonFile': (os.path.basename(json_fname), json_data, 'application/json')
         },
         timeout=30)
     if r.status != 200:
@@ -669,6 +707,7 @@ def saveconfigdata():
         config.set('Section1', 'icad_api_key', icad_APIKey.get())
         config.set('Section1', 'icad_url', icad_URL.get())
         config.set('Section1', 'icad_tgid', icad_tgid.get())
+        config.set('Section1', 'icad_short_name', icad_short_name.get())
         config.write(cfgfile)
         cfgfile.close()
         root.destroy()
@@ -749,9 +788,12 @@ if root != '':
     Label(f, text='iCAD API Key:').grid(row=33, column=0, sticky=E)
     icad_key_Entry = Entry(f, width=40, textvariable=icad_APIKey)
     icad_key_Entry.grid(row=33, column=1, columnspan=4, sticky=W)
+    Label(f, text='iCAD System Short Name:').grid(row=34, column=0, sticky=E)
+    icad_short_name_Entry = Entry(f, width=34, validate='key', validatecommand=vcmd, textvariable=icad_short_name)
+    icad_short_name_Entry.grid(row=34, column=1, sticky=W)
     Label(f, text='iCAD TG/Channel ID:').grid(row=34, column=0, sticky=E)
-    icad_tgid_Entry = Entry(f, width=34, validate='key', validatecommand=vcmd, textvariable=icad_tgid)
-    icad_tgid_Entry.grid(row=34, column=1, sticky=W)
+    icad_tgid_Entry = Entry(f, width=35, validate='key', validatecommand=vcmd, textvariable=icad_tgid)
+    icad_tgid_Entry.grid(row=35, column=1, sticky=W)
 
     Button(f, text="Save & Exit", command=saveconfigdata, width=20).grid(row=37, column=1, columnspan=1, sticky=W)
 
