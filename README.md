@@ -1,5 +1,5 @@
 # voxcall
-A sound-activated audio recorder with support for uploading audio to [OpenMHz](https://www.openmhz.com), [Broadcastify Calls](https://www.broadcastify.com/calls/) and to [rdio-scanner](https://github.com/chuot/rdio-scanner).  For Windows and Raspberry Pi.
+A sound-activated audio recorder with support for uploading audio to [OpenMHz](https://www.openmhz.com), [Broadcastify Calls](https://www.broadcastify.com/calls/) and [rdio-scanner](https://github.com/chuot/rdio-scanner).  For Windows and Raspberry Pi.
 
 ![Screenshot](images/voxcall_screenshot.png)
 
