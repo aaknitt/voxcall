@@ -46,6 +46,17 @@ A sound-activated audio recorder with support for uploading audio to [OpenMHz](h
 - To run:
   - `/home/pi/voxcall/voxcall`
 
+## Development
+Download the source code.
+Install python and dependencies
+Arch:
 
+    sudo pacman -Sy python python-urllib3 python-numpy python-pyaudio tk
 
+Ubuntu/Debian:
 
+    sudo apt install python3 python3-urllib3 python-numpy python3-pyaudio tk
+
+Run the code using the following command:
+
+    python voxcall.py
